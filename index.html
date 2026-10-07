@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Matriks Lalu Lintas Komoditi Kelautan & Perikanan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0265d2',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 1);
+        }
+    </style>
+</head>
+<body class="min-h-screen custom-scrollbar pb-12">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                        <i class="fa-solid fa-fish-fins text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">PORTAL MATRIKS LALU LINTAS KOMODITI</h1>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Periode Mei</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Monitoring & Analisis Lalu Lintas Komoditi Perikanan (DOMAS & DOKEL)</p>
+                    </div>
+                </div>
+
+                <!-- Right Action Controls -->
+                <div class="hidden md:flex items-center space-x-3">
+                    <button onclick="exportCSV()" class="px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition duration-200 flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-file-csv text-emerald-400 text-sm"></i>
+                        <span>Ekspor CSV</span>
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition duration-200 flex items-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-print text-cyan-400 text-sm"></i>
+                        <span>Cetak Laporan</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+
+        <!-- Controls & Mode Selector -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
+            <!-- Mode Switcher Tabs -->
+            <div class="flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800 space-x-1">
+                <button id="tab-all" onclick="setMode('ALL')" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 text-white bg-blue-600 shadow-md">
+                    <i class="fa-solid fa-layer-group mr-2"></i>Semua Data (Kombinasi)
+                </button>
+                <button id="tab-domas" onclick="setMode('DOMAS')" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-arrow-down-left-and-arrow-up-right-to-center mr-2 text-emerald-400"></i>Domestik Masuk (DOMAS)
+                </button>
+                <button id="tab-dokel" onclick="setMode('DOKEL')" class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-paper-plane mr-2 text-amber-400"></i>Domestik Keluar (DOKEL)
+                </button>
+            </div>
+
+            <!-- Global Search & Category Filter -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div class="relative min-w-[240px]">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari komoditas / daerah..." class="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <select id="categoryFilter" onchange="applyFilters()" class="bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    <option value="ALL">Semua Kategori</option>
+                    <option value="IKAN_KONSUMSI">Ikan Konsumsi / Laut</option>
+                    <option value="UDANG_KEPITING">Udang, Kepiting & Lobster</option>
+                    <option value="IKAN_HIAS">Ikan Hias & Benih</option>
+                    <option value="OLAHAN_LAIN">Hasil Olahan & Lainnya</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <!-- Total Nilai Komoditi -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden group hover:border-cyan-500/50 transition duration-300">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Nilai Komoditi</span>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-money-bill-wave text-base"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-black text-white tracking-tight" id="kpi-nilai">Rp 0</div>
+                <div class="mt-2 flex items-center text-xs text-slate-400">
+                    <span class="text-emerald-400 font-medium mr-1.5"><i class="fa-solid fa-chart-line mr-1"></i>Estimasi Ekonomi</span>
+                    <span>Total akumulasi rupiah</span>
+                </div>
+            </div>
+
+            <!-- Total Frekuensi Lalu Lintas -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden group hover:border-blue-500/50 transition duration-300">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Frekuensi</span>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <i class="fa-solid fa-truck-fast text-base"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-black text-white tracking-tight" id="kpi-frekuensi">0 Kali</div>
+                <div class="mt-2 flex items-center text-xs text-slate-400">
+                    <span class="text-blue-400 font-medium mr-1.5" id="kpi-frekuensi-sub">0 DOMAS / 0 DOKEL</span>
+                </div>
+            </div>
+
+            <!-- Total Volume Berat (Kg) -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden group hover:border-emerald-500/50 transition duration-300">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Volume Berat (KG)</span>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-weight-hanging text-base"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-black text-white tracking-tight" id="kpi-kg">0 KG</div>
+                <div class="mt-2 flex items-center text-xs text-slate-400">
+                    <span class="text-emerald-400 font-medium mr-1.5"><i class="fa-solid fa-box text-xs mr-1"></i>Komoditi Non-Hias</span>
+                </div>
+            </div>
+
+            <!-- Total Volume Ekor -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden group hover:border-amber-500/50 transition duration-300">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Jumlah Hidup (Ekor)</span>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                        <i class="fa-solid fa-fish text-base"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-black text-white tracking-tight" id="kpi-ekor">0 Ekor</div>
+                <div class="mt-2 flex items-center text-xs text-slate-400">
+                    <span class="text-amber-400 font-medium mr-1.5"><i class="fa-solid fa-water text-xs mr-1"></i>Ikan Hias & Benih</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Chart: Top Komoditas Berdasarkan Volume KG -->
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-cyan-400"></i>
+                            Top 10 Komoditas Berdasarkan Berat (KG)
+                        </h2>
+                        <p class="text-xs text-slate-400">Volume lalu lintas fisik terbesar dalam Kilogram</p>
+                    </div>
+                    <span class="text-[10px] uppercase tracking-wider px-2 py-1 bg-slate-800 text-slate-300 rounded border border-slate-700">Top 10 Volume</span>
+                </div>
+                <div class="relative h-[320px] w-full">
+                    <canvas id="chartTopWeight"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart: Perbandingan DOMAS vs DOKEL -->
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                            Proporsi DOMAS vs DOKEL
+                        </h2>
+                        <p class="text-xs text-slate-400">Perbandingan kontribusi arus masuk vs arus keluar</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    <div class="relative h-[220px] flex items-center justify-center">
+                        <canvas id="chartDomasVsDokel"></canvas>
+                    </div>
+                    <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <div class="border-b border-slate-800 pb-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400"><i class="fa-solid fa-square text-emerald-400 mr-1"></i>DOMAS (Masuk)</span>
+                                <span id="prop-domas-pct" class="font-bold text-emerald-400">0%</span>
+                            </div>
+                            <div class="text-sm font-bold text-white" id="prop-domas-val">Rp 0</div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400"><i class="fa-solid fa-square text-amber-400 mr-1"></i>DOKEL (Keluar)</span>
+                                <span id="prop-dokel-pct" class="font-bold text-amber-400">0%</span>
+                            </div>
+                            <div class="text-sm font-bold text-white" id="prop-dokel-val">Rp 0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart: Top Daerah Asal / Tujuan Utama -->
+            <div class="glass-panel p-6 rounded-2xl lg:col-span-2">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-purple-400"></i>
+                            Top Wilayah Terkait Lalu Lintas Komoditi
+                        </h2>
+                        <p class="text-xs text-slate-400">Sebaran frekuensi dokumen menurut daerah asal/tujuan</p>
+                    </div>
+                </div>
+                <div class="relative h-[240px] w-full">
+                    <canvas id="chartRegions"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+            <div class="p-5 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40">
+                <div>
+                    <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-cyan-400"></i>
+                        Matriks Detail Komoditi
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5" id="table-summary-text">Menampilkan seluruh data komoditi</p>
+                </div>
+
+                <!-- Sorting & Quick Controls -->
+                <div class="flex items-center space-x-3">
+                    <label class="text-xs text-slate-400 whitespace-nowrap">Urutkan:</label>
+                    <select id="sortBy" onchange="applyFilters()" class="bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 px-3 py-1.5 focus:outline-none">
+                        <option value="NILAI_DESC">Nilai Tertinggi</option>
+                        <option value="FREQ_DESC">Frekuensi Terbanyak</option>
+                        <option value="KG_DESC">Volume KG Terbesar</option>
+                        <option value="EKOR_DESC">Jumlah Ekor Terbanyak</option>
+                        <option value="NAME_ASC">Nama Komoditas (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider border-b border-slate-800 font-semibold">
+                        <tr>
+                            <th class="py-4 px-4 text-center w-12">#</th>
+                            <th class="py-4 px-4">Tipe Flow</th>
+                            <th class="py-4 px-4">Media Pembawa / Komoditas</th>
+                            <th class="py-4 px-4 text-right">Frekuensi</th>
+                            <th class="py-4 px-4 text-right">Volume (KG)</th>
+                            <th class="py-4 px-4 text-right">Volume (Ekor)</th>
+                            <th class="py-4 px-4 text-right">Nilai Komoditi (Rp)</th>
+                            <th class="py-4 px-4">Daerah Asal / Tujuan</th>
+                            <th class="py-4 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-200">
+                        <!-- Rows populated dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Pagination & Counter -->
+            <div class="p-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/30 text-xs text-slate-400">
+                <div id="paginationInfo">Menampilkan 1 - 10 dari 0 data</div>
+                <div class="flex items-center space-x-2" id="paginationButtons">
+                    <!-- Dynamic buttons -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="glass-card max-w-xl w-full rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in duration-200">
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <div class="flex items-center space-x-3">
+                    <div id="modalTypeBadge" class="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 font-bold text-xs">
+                        DOMAS
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-white" id="modalTitle">Detail Komoditas</h3>
+                        <p class="text-xs text-slate-400" id="modalCategory">Kategori: Ikan Konsumsi</p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <!-- Metrics Breakdown -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] uppercase text-slate-400">Frekuensi</div>
+                        <div class="text-base font-bold text-white mt-1" id="modalFreq">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] uppercase text-slate-400">Berat (KG)</div>
+                        <div class="text-base font-bold text-emerald-400 mt-1" id="modalKg">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] uppercase text-slate-400">Jumlah (Ekor)</div>
+                        <div class="text-base font-bold text-amber-400 mt-1" id="modalEkor">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <div class="text-[10px] uppercase text-slate-400">Rata-rata/Frekuensi</div>
+                        <div class="text-xs font-bold text-cyan-400 mt-1" id="modalAvgVal">Rp 0</div>
+                    </div>
+                </div>
+
+                <!-- Total Value Big Badge -->
+                <div class="bg-gradient-to-r from-blue-900/40 to-slate-900 p-4 rounded-xl border border-blue-800/50 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-blue-300">Total Nilai Komoditi</span>
+                        <div class="text-xl font-black text-white" id="modalTotalValue">Rp 0</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-400">Harga Est. / KG</span>
+                        <div class="text-xs font-semibold text-slate-200" id="modalPerKg">Rp 0 / kg</div>
+                    </div>
+                </div>
+
+                <!-- Regions Involved -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Sebaran Wilayah Terkait:</h4>
+                    <div class="flex flex-wrap gap-1.5" id="modalRegionsList">
+                        <!-- Badges -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-900/40 text-right">
+                <button onclick="closeModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datasets extracted from DOMAS & DOKEL documents
+        const allItems = [
+            // --- DOMAS DATA ---
+            { id: "DOMAS_1", flow: "DOMAS", name: "Ikan Tuna", category: "IKAN_KONSUMSI", freq: 69, kg: 15955, ekor: 0, val: 561168000, regions: ["SORONG", "MANADO", "BITUNG", "AMBON", "KAB. PULAU MOROTAI", "KAB. KEPULAUAN SULA"] },
+            { id: "DOMAS_2", flow: "DOMAS", name: "Kepiting Bakau", category: "UDANG_KEPITING", freq: 25, kg: 1003, ekor: 0, val: 35990004, regions: ["AMBON", "SORONG", "KAB. SERAM BAGIAN TIMUR", "KAB. KOTABARU", "KAB. PULAU MOROTAI"] },
+            { id: "DOMAS_3", flow: "DOMAS", name: "Udang Jerbung", category: "UDANG_KEPITING", freq: 7, kg: 2350, ekor: 0, val: 98100000, regions: ["SORONG", "SURABAYA"] },
+            { id: "DOMAS_4", flow: "DOMAS", name: "Cumi-Cumi", category: "IKAN_KONSUMSI", freq: 11, kg: 1006, ekor: 0, val: 18930000, regions: ["BITUNG", "MANADO", "SORONG", "BANJARMASIN", "JAKARTA UTARA", "KAB. BEKASI"] },
+            { id: "DOMAS_5", flow: "DOMAS", name: "Benih Lele", category: "IKAN_HIAS", freq: 3, kg: 39, ekor: 0, val: 2300000, regions: ["MANADO", "KEDIRI"] },
+            { id: "DOMAS_6", flow: "DOMAS", name: "Ikan mas koki", category: "IKAN_HIAS", freq: 12, kg: 48, ekor: 0, val: 3475000, regions: ["KAB. SIDOARJO"] },
+            { id: "DOMAS_7", flow: "DOMAS", name: "Mujair", category: "IKAN_KONSUMSI", freq: 7, kg: 1080, ekor: 0, val: 37800000, regions: ["BITUNG"] },
+            { id: "DOMAS_8", flow: "DOMAS", name: "Ikan Layang", category: "IKAN_KONSUMSI", freq: 21, kg: 14550, ekor: 0, val: 200800000, regions: ["SORONG", "KAB. KEPULAUAN SULA", "KAB. PULAU MOROTAI", "KAB. SERAM BAGIAN TIMUR"] },
+            { id: "DOMAS_9", flow: "DOMAS", name: "Ikan Kembung", category: "IKAN_KONSUMSI", freq: 5, kg: 1930, ekor: 0, val: 53300000, regions: ["KAB. KEPULAUAN SULA"] },
+            { id: "DOMAS_10", flow: "DOMAS", name: "Ikan Kuwe", category: "IKAN_KONSUMSI", freq: 25, kg: 169341, ekor: 0, val: 248506935000, regions: ["SORONG", "MAKASSAR", "KAB. KEPULAUAN ARU", "KAB. KEPULAUAN SULA", "KAB. SIDOARJO"] },
+            { id: "DOMAS_11", flow: "DOMAS", name: "Ikan Lencam", category: "IKAN_KONSUMSI", freq: 28, kg: 49766, ekor: 0, val: 704397000, regions: ["SORONG", "MAKASSAR", "LAMONGAN", "SURABAYA"] },
+            { id: "DOMAS_12", flow: "DOMAS", name: "Ikan Kerapu", category: "IKAN_KONSUMSI", freq: 18, kg: 25341, ekor: 0, val: 231420000, regions: ["LAMONGAN", "REMBANG", "TUBAN", "MAKASSAR", "SORONG"] },
+            { id: "DOMAS_13", flow: "DOMAS", name: "Salmon", category: "IKAN_KONSUMSI", freq: 6, kg: 154, ekor: 0, val: 27250000, regions: ["JAKARTA TIMUR", "MANADO"] },
+            { id: "DOMAS_14", flow: "DOMAS", name: "Ikan Nila", category: "IKAN_KONSUMSI", freq: 46, kg: 142458, ekor: 0, val: 1383590048, regions: ["MANADO", "SURABAYA", "KAB. PATI", "KAB. BEKASI", "KAB. SIDOARJO", "KAB. MINAHASA UTARA"] },
+            { id: "DOMAS_15", flow: "DOMAS", name: "Ikan Patin", category: "IKAN_KONSUMSI", freq: 12, kg: 34784, ekor: 0, val: 559650000, regions: ["MAKASSAR", "SURABAYA", "JAKARTA BARAT", "JAKARTA UTARA"] },
+            { id: "DOMAS_16", flow: "DOMAS", name: "Ikan Koi", category: "IKAN_HIAS", freq: 13, kg: 0, ekor: 1852, val: 5240000, regions: ["KAB. SIDOARJO", "KAB. BLITAR", "TULUNGAGUNG"] },
+            { id: "DOMAS_17", flow: "DOMAS", name: "Ikan Hias Air Tawar", category: "IKAN_HIAS", freq: 23, kg: 0, ekor: 4910, val: 3760000, regions: ["KAB. SIDOARJO", "TULUNGAGUNG"] },
+            { id: "DOMAS_18", flow: "DOMAS", name: "Ikan Molly", category: "IKAN_HIAS", freq: 7, kg: 0, ekor: 2255, val: 1125000, regions: ["KAB. SIDOARJO", "TULUNGAGUNG"] },
+            { id: "DOMAS_19", flow: "DOMAS", name: "Cupang", category: "IKAN_HIAS", freq: 9, kg: 0, ekor: 1552, val: 1430000, regions: ["KAB. SIDOARJO", "TULUNGAGUNG", "JAKARTA UTARA"] },
+            { id: "DOMAS_20", flow: "DOMAS", name: "Black Ghost", category: "IKAN_HIAS", freq: 2, kg: 0, ekor: 320, val: 310000, regions: ["KAB. SIDOARJO"] },
+            { id: "DOMAS_21", flow: "DOMAS", name: "Udang Vaname", category: "UDANG_KEPITING", freq: 38, kg: 88941, ekor: 0, val: 5006949380, regions: ["MANADO", "SURABAYA", "GORONTALO", "BITUNG", "MAKASSAR", "KAB. BEKASI", "KAB. MINAHASA"] },
+            { id: "DOMAS_22", flow: "DOMAS", name: "Ikan Bandeng", category: "IKAN_KONSUMSI", freq: 8, kg: 4015, ekor: 0, val: 135950000, regions: ["BITUNG", "MANADO"] },
+            { id: "DOMAS_23", flow: "DOMAS", name: "Lobster Air Tawar", category: "UDANG_KEPITING", freq: 4, kg: 186, ekor: 0, val: 9600000, regions: ["TOMOHON", "MANADO"] },
+            { id: "DOMAS_24", flow: "DOMAS", name: "Udang Mantis", category: "UDANG_KEPITING", freq: 4, kg: 81, ekor: 0, val: 8200000, regions: ["TOMOHON", "MANADO", "MINAHASA UTARA"] },
+            { id: "DOMAS_25", flow: "DOMAS", name: "Udang Windu", category: "UDANG_KEPITING", freq: 5, kg: 880, ekor: 0, val: 91250000, regions: ["MAKASSAR", "SORONG", "JAKARTA UTARA"] },
+            { id: "DOMAS_26", flow: "DOMAS", name: "Ikan Tengkek", category: "IKAN_KONSUMSI", freq: 1, kg: 40, ekor: 0, val: 1000000, regions: ["MALUKU TENGAH"] },
+            { id: "DOMAS_27", flow: "DOMAS", name: "Ikan Teri", category: "IKAN_KONSUMSI", freq: 18, kg: 12483, ekor: 0, val: 342850000, regions: ["SORONG", "MEDAN", "MANADO", "KAB. GORONTALO UTARA", "KAIMANA"] },
+            { id: "DOMAS_28", flow: "DOMAS", name: "Benih Nila", category: "IKAN_HIAS", freq: 1, kg: 0, ekor: 30000, val: 1800000, regions: ["MINAHASA UTARA"] },
+            { id: "DOMAS_29", flow: "DOMAS", name: "Belut", category: "IKAN_KONSUMSI", freq: 3, kg: 70, ekor: 0, val: 6130000, regions: ["TANGERANG", "BEKASI"] },
+            { id: "DOMAS_30", flow: "DOMAS", name: "Ikan Kakap", category: "IKAN_KONSUMSI", freq: 7, kg: 4466, ekor: 0, val: 115090000, regions: ["MAKASSAR", "MANADO", "SURABAYA", "RAJA AMPAT"] },
+            { id: "DOMAS_31", flow: "DOMAS", name: "Cakalang", category: "IKAN_KONSUMSI", freq: 8, kg: 2905, ekor: 0, val: 53510000, regions: ["KAB. PULAU MOROTAI", "KAB. KEPULAUAN SULA", "MIMIKA", "MANADO"] },
+            { id: "DOMAS_32", flow: "DOMAS", name: "Ikan Asin", category: "OLAHAN_LAIN", freq: 1, kg: 100, ekor: 0, val: 900000, regions: ["MANADO"] },
+            { id: "DOMAS_33", flow: "DOMAS", name: "Lele", category: "IKAN_KONSUMSI", freq: 6, kg: 158, ekor: 0, val: 3492000, regions: ["MANADO", "SURABAYA", "SIDOARJO", "LAMONGAN", "MINAHASA UTARA"] },
+            { id: "DOMAS_34", flow: "DOMAS", name: "Gabus", category: "IKAN_KONSUMSI", freq: 1, kg: 1, ekor: 0, val: 10000, regions: ["TANGERANG", "YOGYAKARTA", "KAB. PURWOREJO"] },
+            { id: "DOMAS_35", flow: "DOMAS", name: "Kura kura", category: "IKAN_HIAS", freq: 1, kg: 2, ekor: 0, val: 25000, regions: ["SIDOARJO"] },
+            { id: "DOMAS_36", flow: "DOMAS", name: "Patin Hias", category: "IKAN_HIAS", freq: 1, kg: 3, ekor: 0, val: 35000, regions: ["SIDOARJO"] },
+            { id: "DOMAS_37", flow: "DOMAS", name: "Udang Ebi", category: "OLAHAN_LAIN", freq: 1, kg: 138, ekor: 0, val: 4830000, regions: ["BEKASI"] },
+            { id: "DOMAS_38", flow: "DOMAS", name: "Rumput Laut", category: "OLAHAN_LAIN", freq: 1, kg: 50, ekor: 0, val: 1750000, regions: ["BEKASI"] },
+            { id: "DOMAS_39", flow: "DOMAS", name: "Olahan Kepiting", category: "OLAHAN_LAIN", freq: 2, kg: 41, ekor: 0, val: 1450000, regions: ["BEKASI", "TUBAN"] },
+            { id: "DOMAS_40", flow: "DOMAS", name: "Olahan Ikan", category: "OLAHAN_LAIN", freq: 11, kg: 531, ekor: 0, val: 17056000, regions: ["BEKASI", "MANADO", "TUBAN"] },
+            { id: "DOMAS_41", flow: "DOMAS", name: "Telur Ikan", category: "OLAHAN_LAIN", freq: 1, kg: 40, ekor: 0, val: 1400000, regions: ["BEKASI"] },
+            { id: "DOMAS_42", flow: "DOMAS", name: "Ikan Selar Kuning", category: "IKAN_KONSUMSI", freq: 11, kg: 4020, ekor: 0, val: 87800000, regions: ["BITUNG", "MANADO"] },
+            { id: "DOMAS_43", flow: "DOMAS", name: "Ikan Mas", category: "IKAN_KONSUMSI", freq: 3, kg: 162, ekor: 0, val: 9615000, regions: ["MANADO", "SURABAYA"] },
+            { id: "DOMAS_44", flow: "DOMAS", name: "Tepung Cumi", category: "OLAHAN_LAIN", freq: 2, kg: 40, ekor: 0, val: 2000000, regions: ["JAKARTA BARAT"] },
+            { id: "DOMAS_45", flow: "DOMAS", name: "Ikan Tongkol", category: "IKAN_KONSUMSI", freq: 2, kg: 1150, ekor: 0, val: 21500000, regions: ["MANADO", "KAB. PULAU MOROTAI"] },
+            { id: "DOMAS_46", flow: "DOMAS", name: "Ikan Bawal", category: "IKAN_KONSUMSI", freq: 3, kg: 3271, ekor: 0, val: 33040000, regions: ["REMBANG", "SURABAYA"] },
+            { id: "DOMAS_47", flow: "DOMAS", name: "Ikan Trakulu", category: "IKAN_KONSUMSI", freq: 2, kg: 1200, ekor: 0, val: 42022000, regions: ["SURABAYA"] },
+            { id: "DOMAS_48", flow: "DOMAS", name: "Udang Putih", category: "UDANG_KEPITING", freq: 4, kg: 1565, ekor: 0, val: 57000000, regions: ["SIDOARJO", "SORONG", "SURABAYA"] },
+            { id: "DOMAS_49", flow: "DOMAS", name: "Ikan Barakuda", category: "IKAN_KONSUMSI", freq: 7, kg: 17882, ekor: 0, val: 301350000, regions: ["MAKASSAR", "SURABAYA", "SORONG"] },
+            { id: "DOMAS_50", flow: "DOMAS", name: "Ikan Kakatua", category: "IKAN_KONSUMSI", freq: 5, kg: 10726, ekor: 0, val: 171855000, regions: ["MAKASSAR", "SURABAYA"] },
+            { id: "DOMAS_51", flow: "DOMAS", name: "Ikan Kaneke", category: "IKAN_KONSUMSI", freq: 4, kg: 10195, ekor: 0, val: 146700000, regions: ["MAKASSAR", "LAMONGAN"] },
+            { id: "DOMAS_52", flow: "DOMAS", name: "Ikan Pepija", category: "IKAN_KONSUMSI", freq: 2, kg: 2, ekor: 0, val: 330000, regions: ["TARAKAN"] },
+            { id: "DOMAS_53", flow: "DOMAS", name: "Ikan Alga Eater", category: "IKAN_HIAS", freq: 1, kg: 2, ekor: 0, val: 300000, regions: ["TULUNGAGUNG"] },
+            { id: "DOMAS_54", flow: "DOMAS", name: "Tetra", category: "IKAN_HIAS", freq: 1, kg: 2, ekor: 0, val: 300000, regions: ["TULUNGAGUNG"] },
+            { id: "DOMAS_55", flow: "DOMAS", name: "Golden Komet", category: "IKAN_HIAS", freq: 1, kg: 2, ekor: 0, val: 400000, regions: ["TULUNGAGUNG"] },
+            { id: "DOMAS_56", flow: "DOMAS", name: "Ikan Pisang-pisang", category: "IKAN_KONSUMSI", freq: 1, kg: 6000, ekor: 0, val: 143000000, regions: ["TUAL"] },
+            { id: "DOMAS_57", flow: "DOMAS", name: "Ikan Kurisi", category: "IKAN_KONSUMSI", freq: 2, kg: 5001, ekor: 0, val: 190150000, regions: ["TUAL", "SURABAYA"] },
+            { id: "DOMAS_58", flow: "DOMAS", name: "Sembilang", category: "IKAN_KONSUMSI", freq: 1, kg: 30, ekor: 0, val: 300000, regions: ["SORONG"] },
+            { id: "DOMAS_59", flow: "DOMAS", name: "Ikan Layur", category: "IKAN_KONSUMSI", freq: 8, kg: 27110, ekor: 0, val: 292800000, regions: ["SURABAYA", "PATI", "MANADO"] },
+            { id: "DOMAS_60", flow: "DOMAS", name: "Ikan Gurami", category: "IKAN_KONSUMSI", freq: 2, kg: 5, ekor: 0, val: 260000, regions: ["SURABAYA", "LAMONGAN"] },
+            { id: "DOMAS_61", flow: "DOMAS", name: "Ikan Kumpele", category: "IKAN_KONSUMSI", freq: 4, kg: 6508, ekor: 0, val: 76288000, regions: ["SURABAYA", "KEPULAUAN ARU", "SIDOARJO"] },
+            { id: "DOMAS_62", flow: "DOMAS", name: "Ikan Tenggiri", category: "IKAN_KONSUMSI", freq: 2, kg: 506, ekor: 0, val: 5420000, regions: ["SURABAYA", "SIDOARJO"] },
+            { id: "DOMAS_63", flow: "DOMAS", name: "Pakan Ikan", category: "OLAHAN_LAIN", freq: 1, kg: 4, ekor: 0, val: 200000, regions: ["MANADO"] },
+            { id: "DOMAS_64", flow: "DOMAS", name: "Ikan Sebelah", category: "IKAN_KONSUMSI", freq: 3, kg: 7002, ekor: 0, val: 90150000, regions: ["SURABAYA", "KEPULAUAN ARU"] },
+            { id: "DOMAS_65", flow: "DOMAS", name: "Ikan Sunglir", category: "IKAN_KONSUMSI", freq: 4, kg: 32754, ekor: 0, val: 193850000, regions: ["SORONG", "MAKASSAR", "JAKARTA PUSAT"] },
+            { id: "DOMAS_66", flow: "DOMAS", name: "Ikan Lemon", category: "IKAN_HIAS", freq: 1, kg: 2, ekor: 0, val: 200000, regions: ["SIDOARJO"] },
+            { id: "DOMAS_67", flow: "DOMAS", name: "Udang Dogol", category: "UDANG_KEPITING", freq: 2, kg: 149, ekor: 0, val: 12400000, regions: ["SORONG", "LAMONGAN"] },
+            { id: "DOMAS_68", flow: "DOMAS", name: "Ikan Ekor Kuning", category: "IKAN_KONSUMSI", freq: 1, kg: 2, ekor: 0, val: 15000, regions: ["SURABAYA"] },
+            { id: "DOMAS_69", flow: "DOMAS", name: "Koi", category: "IKAN_HIAS", freq: 1, kg: 500, ekor: 0, val: 10000000, regions: ["SIDOARJO", "BLITAR", "TULUNGAGUNG"] },
+            { id: "DOMAS_70", flow: "DOMAS", name: "Ikan Katamba", category: "IKAN_KONSUMSI", freq: 1, kg: 100, ekor: 0, val: 1000000, regions: ["SORONG"] },
+            { id: "DOMAS_71", flow: "DOMAS", name: "Ikan Sarden", category: "IKAN_KONSUMSI", freq: 1, kg: 30, ekor: 0, val: 3000000, regions: ["SORONG"] },
+            { id: "DOMAS_72", flow: "DOMAS", name: "Cherax", category: "UDANG_KEPITING", freq: 1, kg: 17, ekor: 0, val: 900000, regions: ["TOMOHON"] },
+            { id: "DOMAS_73", flow: "DOMAS", name: "Benih Patin", category: "IKAN_HIAS", freq: 1, kg: 20, ekor: 0, val: 116000000, regions: ["KEDIRI"] },
+            { id: "DOMAS_74", flow: "DOMAS", name: "Teripang", category: "IKAN_KONSUMSI", freq: 2, kg: 2, ekor: 0, val: 120000, regions: ["JAKARTA BARAT"] },
+            { id: "DOMAS_75", flow: "DOMAS", name: "Komet", category: "IKAN_HIAS", freq: 1, kg: 1, ekor: 0, val: 110000, regions: ["SIDOARJO"] },
+            { id: "DOMAS_76", flow: "DOMAS", name: "Ikan Guppy", category: "IKAN_HIAS", freq: 1, kg: 1, ekor: 0, val: 60000, regions: ["SIDOARJO"] },
+            { id: "DOMAS_77", flow: "DOMAS", name: "Ikan Manfish", category: "IKAN_HIAS", freq: 1, kg: 1, ekor: 0, val: 60000, regions: ["SIDOARJO"] },
+
+            // --- DOKEL DATA ---
+            { id: "DOKEL_1", flow: "DOKEL", name: "Ikan Kakap", category: "IKAN_KONSUMSI", freq: 67, kg: 5488, ekor: 0, val: 180629000, regions: ["JAKARTA PUSAT", "AMBON", "BEKASI", "MANADO"] },
+            { id: "DOKEL_2", flow: "DOKEL", name: "Ikan Baronang", category: "IKAN_KONSUMSI", freq: 15, kg: 1104, ekor: 0, val: 28484500, regions: ["MANADO", "AMBON"] },
+            { id: "DOKEL_3", flow: "DOKEL", name: "Ikan Kerapu", category: "IKAN_KONSUMSI", freq: 159, kg: 13218, ekor: 0, val: 677324000, regions: ["BOLAANG MONGONDOW", "JAKARTA TIMUR", "AMBON", "BITUNG", "MAKASSAR", "MANADO", "SURABAYA", "TERNATE"] },
+            { id: "DOKEL_4", flow: "DOKEL", name: "Ikan Lencam", category: "IKAN_KONSUMSI", freq: 21, kg: 1369, ekor: 0, val: 43127000, regions: ["AMBON", "JAKARTA PUSAT", "MANADO"] },
+            { id: "DOKEL_5", flow: "DOKEL", name: "Udang Kipas - Hidup", category: "UDANG_KEPITING", freq: 48, kg: 0, ekor: 2030, val: 77195000, regions: ["JAKARTA TIMUR", "JAKARTA PUSAT", "TANGERANG"] },
+            { id: "DOKEL_6", flow: "DOKEL", name: "Lobster Air Laut - Hidup", category: "UDANG_KEPITING", freq: 72, kg: 4283, ekor: 0, val: 820314009, regions: ["JAKARTA PUSAT", "JAKARTA TIMUR", "DENPASAR", "TANGERANG"] },
+            { id: "DOKEL_7", flow: "DOKEL", name: "Daging Rajungan", category: "UDANG_KEPITING", freq: 16, kg: 517, ekor: 0, val: 40400000, regions: ["KENDARI", "JAKARTA PUSAT", "JAKARTA SELATAN"] },
+            { id: "DOKEL_8", flow: "DOKEL", name: "Ikan Ekor Kuning", category: "IKAN_KONSUMSI", freq: 15, kg: 1704, ekor: 0, val: 46570000, regions: ["MANADO"] },
+            { id: "DOKEL_9", flow: "DOKEL", name: "Ikan Kuwe", category: "IKAN_KONSUMSI", freq: 60, kg: 8063, ekor: 0, val: 255913000, regions: ["MANADO", "AMBON"] },
+            { id: "DOKEL_10", flow: "DOKEL", name: "Ikan Tuna", category: "IKAN_KONSUMSI", freq: 166, kg: 208711, ekor: 0, val: 12113204909, regions: ["BANGGAI", "GORONTALO", "LAMONGAN", "JAKARTA PUSAT", "JAKARTA UTARA", "AMBON", "BEKASI", "BITUNG", "DENPASAR", "KENDARI", "MANADO", "MEDAN", "TERNATE"] },
+            { id: "DOKEL_11", flow: "DOKEL", name: "Cakalang", category: "IKAN_KONSUMSI", freq: 20, kg: 195292, ekor: 0, val: 3136120000, regions: ["MAKASSAR", "MANADO", "MEDAN", "JAKARTA BARAT", "TERNATE", "TULUNGAGUNG", "LAMONGAN", "SIDOARJO", "TANGERANG", "BANYUWANGI"] },
+            { id: "DOKEL_12", flow: "DOKEL", name: "Cumi-Cumi", category: "IKAN_KONSUMSI", freq: 15, kg: 106834, ekor: 0, val: 2950800000, regions: ["MAKASSAR", "JAKARTA BARAT", "SORONG", "SIDOARJO", "BANYUWANGI", "SURABAYA"] },
+            { id: "DOKEL_13", flow: "DOKEL", name: "Ikan Layang", category: "IKAN_KONSUMSI", freq: 38, kg: 116827, ekor: 0, val: 2190780000, regions: ["AMBON", "BEKASI", "BITUNG", "TERNATE", "BANYUWANGI", "SIDOARJO", "LAMONGAN", "TULUNGAGUNG"] },
+            { id: "DOKEL_14", flow: "DOKEL", name: "Ikan Tongkol", category: "IKAN_KONSUMSI", freq: 5, kg: 7530, ekor: 0, val: 106120000, regions: ["BANYUWANGI", "TERNATE", "LAMONGAN", "TULUNGAGUNG", "BEKASI"] },
+            { id: "DOKEL_15", flow: "DOKEL", name: "Julung-julung", category: "IKAN_KONSUMSI", freq: 25, kg: 10717, ekor: 0, val: 279860000, regions: ["MANADO", "BITUNG"] },
+            { id: "DOKEL_16", flow: "DOKEL", name: "Ikan Kuniran", category: "IKAN_KONSUMSI", freq: 5, kg: 155, ekor: 0, val: 3390000, regions: ["MANADO", "BITUNG"] },
+            { id: "DOKEL_17", flow: "DOKEL", name: "Ikan Kakatua", category: "IKAN_KONSUMSI", freq: 105, kg: 15942, ekor: 0, val: 372558000, regions: ["BITUNG", "MAKASSAR", "MANADO", "TERNATE"] },
+            { id: "DOKEL_18", flow: "DOKEL", name: "Ikan Pisang-pisang", category: "IKAN_KONSUMSI", freq: 81, kg: 12748, ekor: 0, val: 287014000, regions: ["BOLAANG MONGONDOW", "AMBON", "BITUNG", "MANADO", "TERNATE"] },
+            { id: "DOKEL_19", flow: "DOKEL", name: "Gurita", category: "IKAN_KONSUMSI", freq: 20, kg: 2200, ekor: 0, val: 134936000, regions: ["BANGGAI", "MANADO", "KENDARI"] },
+            { id: "DOKEL_20", flow: "DOKEL", name: "Ikan Gerot-gerot", category: "IKAN_KONSUMSI", freq: 23, kg: 925, ekor: 0, val: 24687000, regions: ["TANGERANG", "JAKARTA PUSAT", "JAKARTA BARAT"] },
+            { id: "DOKEL_21", flow: "DOKEL", name: "Udang Mantis", category: "UDANG_KEPITING", freq: 8, kg: 752, ekor: 0, val: 248700000, regions: ["TANGERANG"] },
+            { id: "DOKEL_22", flow: "DOKEL", name: "Ikan Marlin", category: "IKAN_KONSUMSI", freq: 40, kg: 3447, ekor: 0, val: 99240000, regions: ["MANADO", "BANGGAI"] },
+            { id: "DOKEL_23", flow: "DOKEL", name: "Ikan Kumpele", category: "IKAN_KONSUMSI", freq: 22, kg: 2418, ekor: 0, val: 46110000, regions: ["MANADO"] },
+            { id: "DOKEL_24", flow: "DOKEL", name: "Teripang", category: "IKAN_KONSUMSI", freq: 12, kg: 2242, ekor: 0, val: 1107945000, regions: ["SURABAYA", "MAKASSAR", "PONTIANAK"] },
+            { id: "DOKEL_25", flow: "DOKEL", name: "Ikan Kurisi", category: "IKAN_KONSUMSI", freq: 2, kg: 150, ekor: 0, val: 4000000, regions: ["MANADO"] },
+            { id: "DOKEL_26", flow: "DOKEL", name: "Kepiting", category: "UDANG_KEPITING", freq: 29, kg: 2032, ekor: 0, val: 152020000, regions: ["JAKARTA UTARA", "BATAM", "MANADO", "MAKASSAR", "TANGERANG", "TERNATE"] },
+            { id: "DOKEL_27", flow: "DOKEL", name: "Ikan Tenggiri", category: "IKAN_KONSUMSI", freq: 19, kg: 560, ekor: 0, val: 30840000, regions: ["MANADO", "MAKASSAR", "SURABAYA", "BEKASI"] },
+            { id: "DOKEL_28", flow: "DOKEL", name: "Ikan Lemadang", category: "IKAN_KONSUMSI", freq: 13, kg: 8514, ekor: 0, val: 255420000, regions: ["KENDARI", "MANADO", "SURABAYA", "GORONTALO"] },
+            { id: "DOKEL_29", flow: "DOKEL", name: "Ikan Hias Air Laut", category: "IKAN_HIAS", freq: 1, kg: 20, ekor: 0, val: 17000000, regions: ["DENPASAR"] },
+            { id: "DOKEL_30", flow: "DOKEL", name: "Rumput Laut", category: "OLAHAN_LAIN", freq: 4, kg: 31010, ekor: 0, val: 330200000, regions: ["MAKASSAR", "SURABAYA"] },
+            { id: "DOKEL_31", flow: "DOKEL", name: "Ikan Kembung", category: "IKAN_KONSUMSI", freq: 5, kg: 3160, ekor: 0, val: 45750000, regions: ["AMBON", "TERNATE", "SURABAYA", "SIDOARJO"] },
+            { id: "DOKEL_32", flow: "DOKEL", name: "Ikan Selar Kuning", category: "IKAN_KONSUMSI", freq: 2, kg: 12, ekor: 0, val: 300000, regions: ["BANJARMASIN", "JAKARTA UTARA"] },
+            { id: "DOKEL_33", flow: "DOKEL", name: "Ikan Katamba", category: "IKAN_KONSUMSI", freq: 5, kg: 162, ekor: 0, val: 3737500, regions: ["MANADO"] },
+            { id: "DOKEL_34", flow: "DOKEL", name: "Angel Fish", category: "IKAN_HIAS", freq: 6, kg: 399, ekor: 0, val: 98865000, regions: ["DENPASAR"] },
+            { id: "DOKEL_35", flow: "DOKEL", name: "Buntal", category: "IKAN_KONSUMSI", freq: 1, kg: 20, ekor: 0, val: 1000000, regions: ["MANADO"] },
+            { id: "DOKEL_36", flow: "DOKEL", name: "Sirip Hiu", category: "OLAHAN_LAIN", freq: 8, kg: 452, ekor: 0, val: 386000000, regions: ["SURABAYA", "MAKASSAR"] },
+            { id: "DOKEL_37", flow: "DOKEL", name: "Daging Kepiting", category: "UDANG_KEPITING", freq: 1, kg: 38, ekor: 0, val: 600000, regions: ["KENDARI"] },
+            { id: "DOKEL_38", flow: "DOKEL", name: "Kerang Mutiara", category: "OLAHAN_LAIN", freq: 2, kg: 73, ekor: 0, val: 22500000, regions: ["SURABAYA"] },
+            { id: "DOKEL_39", flow: "DOKEL", name: "Belut", category: "IKAN_KONSUMSI", freq: 1, kg: 200, ekor: 0, val: 20000000, regions: ["SURABAYA"] },
+            { id: "DOKEL_40", flow: "DOKEL", name: "Ikan Ayam-ayam", category: "IKAN_KONSUMSI", freq: 1, kg: 220, ekor: 0, val: 7000000, regions: ["BITUNG"] },
+            { id: "DOKEL_41", flow: "DOKEL", name: "Ikan Teri", category: "IKAN_KONSUMSI", freq: 5, kg: 16261, ekor: 0, val: 1531625000, regions: ["BITUNG", "MANADO", "JAKARTA BARAT"] },
+            { id: "DOKEL_42", flow: "DOKEL", name: "Pakan Ikan", category: "OLAHAN_LAIN", freq: 2, kg: 8, ekor: 0, val: 200000, regions: ["MAKASSAR"] },
+            { id: "DOKEL_43", flow: "DOKEL", name: "Ikan Barakuda", category: "IKAN_KONSUMSI", freq: 2, kg: 322, ekor: 0, val: 8105000, regions: ["MANADO"] },
+            { id: "DOKEL_44", flow: "DOKEL", name: "Ikan Gobies", category: "IKAN_HIAS", freq: 1, kg: 20, ekor: 0, val: 3500000, regions: ["BOGOR"] },
+            { id: "DOKEL_45", flow: "DOKEL", name: "LIVE MUD CRAB", category: "UDANG_KEPITING", freq: 1, kg: 288, ekor: 0, val: 34830000, regions: ["TANGERANG"] },
+            { id: "DOKEL_46", flow: "DOKEL", name: "Ikan Kipas", category: "IKAN_KONSUMSI", freq: 1, kg: 5, ekor: 0, val: 520000, regions: ["JAKARTA PUSAT"] },
+            { id: "DOKEL_47", flow: "DOKEL", name: "Mujair", category: "IKAN_KONSUMSI", freq: 1, kg: 32, ekor: 0, val: 960000, regions: ["GORONTALO"] },
+            { id: "DOKEL_48", flow: "DOKEL", name: "Ikan Asin", category: "OLAHAN_LAIN", freq: 2, kg: 240, ekor: 0, val: 9500000, regions: ["MANADO", "JAKARTA BARAT"] }
+        ];
+
+        // State variables
+        let currentMode = 'ALL'; // 'ALL', 'DOMAS', 'DOKEL'
+        let filteredData = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // Chart Instances
+        let chartTopWeight = null;
+        let chartDomasVsDokel = null;
+        let chartRegions = null;
+
+        // Helper formatting functions
+        function formatIDR(val) {
+            if (val >= 1e12) return 'Rp ' + (val / 1e12).toFixed(2) + ' T';
+            if (val >= 1e9) return 'Rp ' + (val / 1e9).toFixed(2) + ' M';
+            if (val >= 1e6) return 'Rp ' + (val / 1e6).toFixed(1) + ' Jt';
+            return 'Rp ' + val.toLocaleString('id-ID');
+        }
+
+        function formatFullIDR(val) {
+            return 'Rp ' + val.toLocaleString('id-ID');
+        }
+
+        function formatNum(val) {
+            return val.toLocaleString('id-ID');
+        }
+
+        // Mode Selector Handler
+        function setMode(mode) {
+            currentMode = mode;
+            ['all', 'domas', 'dokel'].forEach(m => {
+                const btn = document.getElementById(`tab-${m}`);
+                if (m.toUpperCase() === mode) {
+                    btn.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 text-white bg-blue-600 shadow-md";
+                } else {
+                    btn.className = "flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 text-slate-400 hover:text-white";
+                }
+            });
+            applyFilters();
+        }
+
+        // Main Filtering & Calculation Logic
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+            const cat = document.getElementById('categoryFilter').value;
+            const sort = document.getElementById('sortBy').value;
+
+            filteredData = allItems.filter(item => {
+                // Filter by mode
+                if (currentMode !== 'ALL' && item.flow !== currentMode) return false;
+
+                // Filter by category
+                if (cat !== 'ALL' && item.category !== cat) return false;
+
+                // Filter by search string
+                if (search) {
+                    const matchName = item.name.toLowerCase().includes(search);
+                    const matchRegions = item.regions.some(r => r.toLowerCase().includes(search));
+                    if (!matchName && !matchRegions) return false;
+                }
+                return true;
+            });
+
+            // Sorting
+            filteredData.sort((a, b) => {
+                if (sort === 'NILAI_DESC') return b.val - a.val;
+                if (sort === 'FREQ_DESC') return b.freq - a.freq;
+                if (sort === 'KG_DESC') return b.kg - a.kg;
+                if (sort === 'EKOR_DESC') return b.ekor - a.ekor;
+                if (sort === 'NAME_ASC') return a.name.localeCompare(b.name);
+                return 0;
+            });
+
+            currentPage = 1;
+            updateKPIs();
+            updateCharts();
+            renderTable();
+        }
+
+        // Update KPI Cards
+        function updateKPIs() {
+            const totalVal = filteredData.reduce((acc, i) => acc + i.val, 0);
+            const totalFreq = filteredData.reduce((acc, i) => acc + i.freq, 0);
+            const totalKg = filteredData.reduce((acc, i) => acc + i.kg, 0);
+            const totalEkor = filteredData.reduce((acc, i) => acc + i.ekor, 0);
+
+            document.getElementById('kpi-nilai').innerText = formatIDR(totalVal);
+            document.getElementById('kpi-frekuensi').innerText = formatNum(totalFreq) + ' Kali';
+            document.getElementById('kpi-kg').innerText = formatNum(totalKg) + ' KG';
+            document.getElementById('kpi-ekor').innerText = formatNum(totalEkor) + ' Ekor';
+
+            const domasFreq = filteredData.filter(i => i.flow === 'DOMAS').reduce((a, b) => a + b.freq, 0);
+            const dokelFreq = filteredData.filter(i => i.flow === 'DOKEL').reduce((a, b) => a + b.freq, 0);
+            document.getElementById('kpi-frekuensi-sub').innerText = `${formatNum(domasFreq)} DOMAS / ${formatNum(dokelFreq)} DOKEL`;
+        }
+
+        // Configure and Render Charts
+        function updateCharts() {
+            // Chart 1: Top 10 Weight (KG)
+            const topKgItems = [...filteredData].filter(i => i.kg > 0).sort((a, b) => b.kg - a.kg).slice(0, 10);
+            const topKgLabels = topKgItems.map(i => i.name + (currentMode === 'ALL' ? ` (${i.flow})` : ''));
+            const topKgData = topKgItems.map(i => i.kg);
+
+            if (chartTopWeight) chartTopWeight.destroy();
+            chartTopWeight = new Chart(document.getElementById('chartTopWeight'), {
+                type: 'bar',
+                data: {
+                    labels: topKgLabels,
+                    datasets: [{
+                        label: 'Berat (KG)',
+                        data: topKgData,
+                        backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ' Berat: ' + formatNum(ctx.raw) + ' KG'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: (val) => formatNum(val) + ' kg'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#e2e8f0', font: { size: 10 }, maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Proportion DOMAS vs DOKEL
+            const domasTotalVal = filteredData.filter(i => i.flow === 'DOMAS').reduce((a, b) => a + b.val, 0);
+            const dokelTotalVal = filteredData.filter(i => i.flow === 'DOKEL').reduce((a, b) => a + b.val, 0);
+            const grandTotalVal = domasTotalVal + dokelTotalVal || 1;
+
+            const domasPct = ((domasTotalVal / grandTotalVal) * 100).toFixed(1);
+            const dokelPct = ((dokelTotalVal / grandTotalVal) * 100).toFixed(1);
+
+            document.getElementById('prop-domas-pct').innerText = domasPct + '%';
+            document.getElementById('prop-dokel-pct').innerText = dokelPct + '%';
+            document.getElementById('prop-domas-val').innerText = formatIDR(domasTotalVal);
+            document.getElementById('prop-dokel-val').innerText = formatIDR(dokelTotalVal);
+
+            if (chartDomasVsDokel) chartDomasVsDokel.destroy();
+            chartDomasVsDokel = new Chart(document.getElementById('chartDomasVsDokel'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['DOMAS (Masuk)', 'DOKEL (Keluar)'],
+                    datasets: [{
+                        data: [domasTotalVal, dokelTotalVal],
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ctx.label + ': ' + formatFullIDR(ctx.raw)
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Chart 3: Top Regions Matrix
+            const regionFreqMap = {};
+            filteredData.forEach(item => {
+                item.regions.forEach(reg => {
+                    const cleanReg = reg.trim();
+                    if (cleanReg) {
+                        regionFreqMap[cleanReg] = (regionFreqMap[cleanReg] || 0) + item.freq;
+                    }
+                });
+            });
+
+            const topRegions = Object.entries(regionFreqMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            if (chartRegions) chartRegions.destroy();
+            chartRegions = new Chart(document.getElementById('chartRegions'), {
+                type: 'bar',
+                data: {
+                    labels: topRegions.map(r => r[0]),
+                    datasets: [{
+                        label: 'Frekuensi Pengiriman',
+                        data: topRegions.map(r => r[1]),
+                        backgroundColor: 'rgba(168, 85, 247, 0.85)',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ' Frekuensi: ' + ctx.raw + ' transaksi'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#e2e8f0', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Data Table
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const pageData = filteredData.slice(startIndex, startIndex + pageSize);
+
+            document.getElementById('table-summary-text').innerText = `Menampilkan ${filteredData.length} entri komoditi`;
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-slate-500 text-sm">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600 block"></i>
+                            Tidak ada data komoditi yang sesuai filter
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('paginationInfo').innerText = 'Menampilkan 0 data';
+                document.getElementById('paginationButtons').innerHTML = '';
+                return;
+            }
+
+            pageData.forEach((item, idx) => {
+                const globalIndex = startIndex + idx + 1;
+                const flowBadge = item.flow === 'DOMAS' 
+                    ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-arrow-down-left mr-1"></i>DOMAS</span>`
+                    : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20"><i class="fa-solid fa-arrow-up-right mr-1"></i>DOKEL</span>`;
+
+                const regionBadges = item.regions.slice(0, 2).map(r => 
+                    `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">${r}</span>`
+                ).join(' ');
+
+                const extraRegions = item.regions.length > 2 
+                    ? `<span class="text-[10px] text-slate-500 font-semibold">+${item.regions.length - 2}</span>` 
+                    : '';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50 transition duration-150 border-b border-slate-800/40";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center text-slate-500 font-mono">${globalIndex}</td>
+                    <td class="py-3 px-4">${flowBadge}</td>
+                    <td class="py-3 px-4 font-bold text-white">
+                        ${item.name}
+                        <div class="text-[10px] font-normal text-slate-400">${item.category.replace('_', ' ')}</div>
+                    </td>
+                    <td class="py-3 px-4 text-right font-mono text-slate-200">${formatNum(item.freq)}</td>
+                    <td class="py-3 px-4 text-right font-mono ${item.kg > 0 ? 'text-cyan-400 font-semibold' : 'text-slate-600'}">${item.kg > 0 ? formatNum(item.kg) : '-'}</td>
+                    <td class="py-3 px-4 text-right font-mono ${item.ekor > 0 ? 'text-amber-400 font-semibold' : 'text-slate-600'}">${item.ekor > 0 ? formatNum(item.ekor) : '-'}</td>
+                    <td class="py-3 px-4 text-right font-mono font-bold text-white">${formatFullIDR(item.val)}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center space-x-1 flex-wrap gap-y-1">
+                            ${regionBadges} ${extraRegions}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="openDetailModal('${item.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-xs font-semibold border border-slate-700 transition">
+                            <i class="fa-solid fa-eye mr-1"></i>Detail
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update Pagination
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            document.getElementById('paginationInfo').innerText = `Menampilkan ${startIndex + 1} - ${Math.min(startIndex + pageSize, filteredData.length)} dari ${filteredData.length} data`;
+
+            const pageBtns = document.getElementById('paginationButtons');
+            pageBtns.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-3 py-1.5 rounded-lg border text-xs font-bold transition ${currentPage === 1 ? 'border-slate-800 text-slate-600 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`;
+            prevBtn.innerText = 'Sebelumnya';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+            pageBtns.appendChild(prevBtn);
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-3 py-1.5 rounded-lg border text-xs font-bold transition ${currentPage === totalPages || totalPages === 0 ? 'border-slate-800 text-slate-600 cursor-not-allowed' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`;
+            nextBtn.innerText = 'Selanjutnya';
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+            pageBtns.appendChild(nextBtn);
+        }
+
+        // Open Item Modal
+        function openDetailModal(id) {
+            const item = allItems.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('modalTitle').innerText = item.name;
+            document.getElementById('modalTypeBadge').innerText = item.flow;
+            document.getElementById('modalTypeBadge').className = item.flow === 'DOMAS'
+                ? 'p-2 rounded-xl bg-emerald-500/10 text-emerald-400 font-bold text-xs border border-emerald-500/20'
+                : 'p-2 rounded-xl bg-amber-500/10 text-amber-400 font-bold text-xs border border-amber-500/20';
+
+            document.getElementById('modalCategory').innerText = 'Kategori: ' + item.category.replace('_', ' ');
+            document.getElementById('modalFreq').innerText = formatNum(item.freq) + 'x Transaksi';
+            document.getElementById('modalKg').innerText = item.kg > 0 ? formatNum(item.kg) + ' KG' : '-';
+            document.getElementById('modalEkor').innerText = item.ekor > 0 ? formatNum(item.ekor) + ' Ekor' : '-';
+            document.getElementById('modalTotalValue').innerText = formatFullIDR(item.val);
+
+            const avgVal = item.freq > 0 ? Math.round(item.val / item.freq) : 0;
+            document.getElementById('modalAvgVal').innerText = formatIDR(avgVal);
+
+            const perKgVal = item.kg > 0 ? Math.round(item.val / item.kg) : 0;
+            document.getElementById('modalPerKg').innerText = perKgVal > 0 ? formatFullIDR(perKgVal) + ' / kg' : 'N/A';
+
+            const regionsList = document.getElementById('modalRegionsList');
+            regionsList.innerHTML = item.regions.map(r => 
+                `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-slate-200 border border-slate-700 font-medium"><i class="fa-solid fa-location-dot text-cyan-400 mr-1.5"></i>${r}</span>`
+            ).join('');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+        }
+
+        // Export data to CSV
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,ID,Tipe_Flow,Komoditas,Kategori,Frekuensi,Berat_KG,Jumlah_Ekor,Nilai_Komoditi_Rp,Daerah_Terkait\n";
+            
+            filteredData.forEach(item => {
+                const regionsStr = `"${item.regions.join(', ')}"`;
+                const row = [
+                    item.id,
+                    item.flow,
+                    `"${item.name}"`,
+                    item.category,
+                    item.freq,
+                    item.kg,
+                    item.ekor,
+                    item.val,
+                    regionsStr
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Matriks_Lalu_Lintas_Komoditi_${currentMode}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Initialize on window load
+        window.onload = function() {
+            applyFilters();
+        };
+    </script>
+</body>
+</html>
